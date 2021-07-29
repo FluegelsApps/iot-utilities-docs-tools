@@ -78,7 +78,7 @@ function adjustMarkdown(markdown) {
     }
 
     //Inject readme front matter
-    let readmeFrontMatter = `---${os.EOL}title: ${getMarkdownHeader(markdown)}${os.EOL}excerpt: ${getMarkdownHeader(markdown)}${os.EOL}---${os.EOL}${os.EOL}`;
+    let readmeFrontMatter = `---${os.EOL}title: ${getMarkdownHeader(markdown)}${os.EOL}excerpt: ${getMarkdownHeader(markdown)}${os.EOL}hidden: false${os.EOL}---${os.EOL}${os.EOL}`;
     markdown = `${readmeFrontMatter}${markdown}`;
 
     return markdown;
