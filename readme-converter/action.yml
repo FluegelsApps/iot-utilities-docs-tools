@@ -1,4 +1,4 @@
-name: "Markdown to ReadMe Docs Converter"
+name: "ReadMe Documentation Converter"
 description: "Automatically generates a zip file containing the current documentation in valid format for docs.readme.com"
 inputs:
   root-directory:
@@ -17,6 +17,10 @@ inputs:
     description: "File name of the folder´s index files"
     required: true
     default: "index"
+  version-code:
+    description: "Version code of the generated documentation. This is the name of the root folder of the zip file."
+    required: true
+    default: "v1.0"
 runs:
   using: "node12"
   main: "converter.js"

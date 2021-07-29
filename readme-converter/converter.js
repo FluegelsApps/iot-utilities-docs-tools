@@ -11,8 +11,9 @@ let destination_directory = core.getInput("destination-directory");
 let root_directory = core.getInput("root-directory");
 let zip_filename = core.getInput("zip-filename");
 let index_name = core.getInput("index-name");
+let version_code = core.getInput("version-code");
 
-let outputFolder = `${destination_directory}${zip_filename.replace(".zip", "")}`;
+let outputFolder = `${destination_directory}${version_code}`;
 let outputZip = `${destination_directory}${zip_filename}`;
 
 try {
@@ -21,13 +22,13 @@ try {
     if(fs.existsSync(outputFolder)) fs.rmdirSync(outputFolder, { recursive: true, force: true });
     if(fs.existsSync(outputZip)) fs.unlinkSync(outputZip, { recursive: true, force: true });
     fs.mkdirSync(outputFolder);
-    copyFolderRecursive(root_directory, outputFolder);
+    copyFolderRecursive(root_directory, outputFolder, 0);
     compressDirectory(outputFolder, outputZip);
 } catch (exception) {
     core.setFailed(exception.message);
 }
 
-function copyFolderRecursive(origin, destination) {
+function copyFolderRecursive(origin, destination, level) {
     //Copy the origin directory recursively to the destination directory
     console.log(`Copying directory ${origin} to ${destination}`);
     fs.readdirSync(origin).forEach(node => {
@@ -37,12 +38,13 @@ function copyFolderRecursive(origin, destination) {
         if(isDirectory(node)) {
             //Copy the subdirectory recursively
             fs.mkdirSync(newDestination);
-            copyFolderRecursive(newOrigin, newDestination);
-        } else if(isMarkdown(node)) {
+            copyFolderRecursive(newOrigin, newDestination, level + 1);
+        } else if(isMarkdown(node) && level > 0) {
             if(isIndexFile(node)) {
                 //Rename the index file
                 console.log(`Renaming index file ${newOrigin} and copying to ${newDestination}`);
-                newDestination = `${destination}/${getName(origin)}${FILEEXTENSION_MARKDOWN}`;
+                let destinationParts = destination.split("/");
+                newDestination = `${destination.replace(destinationParts[destinationParts.length - 1], "")}/${getName(origin)}${FILEEXTENSION_MARKDOWN}`;
                 let indexContent = adjustMarkdown(fs.readFileSync(newOrigin, "utf-8"));
                 fs.writeFileSync(newDestination, indexContent, { flag: 'w+' });
             } else {
@@ -71,7 +73,7 @@ function adjustMarkdown(markdown) {
 
         //Remove the front matter from the document
         let tempContent = "";
-        for(let i = endIndex; i < splitContent.length; i++) tempContent = `${tempContent}${splitContent[i]}${os.EOL}`;
+        for(let i = endIndex + 2; i < splitContent.length; i++) tempContent = `${tempContent}${splitContent[i]}${os.EOL}`;
         markdown = tempContent;
     }
 
@@ -94,16 +96,7 @@ function compressDirectory(origin, destination) {
         fs.rmdirSync(origin, { recursive: true, force: true });
     });
     archive.pipe(output);
-    fs.readdirSync(origin).forEach(node => {
-        let subNode = `${origin}/${node}`.replace("./", "");
-        if(isDirectory(node)) {
-            console.log(`Archiving directory in current directory: ${subNode}`);
-            archive.directory(subNode, subNode);
-        } else {
-            console.log(`Archiving file in current directory: ${subNode}`);
-            archive.file(subNode, { name: subNode });
-        } 
-    });
+    archive.directory(origin, origin);
     archive.finalize();    
 }
 
