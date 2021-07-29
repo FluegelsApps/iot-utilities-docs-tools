@@ -39,15 +39,15 @@ function copyFolderRecursive(origin, destination, level) {
             //Copy the subdirectory recursively
             fs.mkdirSync(newDestination);
             copyFolderRecursive(newOrigin, newDestination, level + 1);
-        } else if(isMarkdown(node) && level > 0) {
-            if(isIndexFile(node)) {
+        } else if(isMarkdown(node)) {
+            if(isIndexFile(node) && level > 1) {
                 //Rename the index file
                 console.log(`Renaming index file ${newOrigin} and copying to ${newDestination}`);
                 let destinationParts = destination.split("/");
                 newDestination = `${destination.replace(destinationParts[destinationParts.length - 1], "")}/${getName(origin)}${FILEEXTENSION_MARKDOWN}`;
                 let indexContent = adjustMarkdown(fs.readFileSync(newOrigin, "utf-8"));
                 fs.writeFileSync(newDestination, indexContent, { flag: 'w+' });
-            } else {
+            } else if (level > 0) {
                 //Copy a file in the current directory to the destination
                 console.log(`Copying file ${newOrigin} to ${newDestination}`);
                 let originContent = adjustMarkdown(fs.readFileSync(newOrigin, "utf-8"));
