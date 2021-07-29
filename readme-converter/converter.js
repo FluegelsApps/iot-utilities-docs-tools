@@ -23,7 +23,6 @@ try {
     fs.mkdirSync(outputFolder);
     copyFolderRecursive(root_directory, outputFolder);
     compressDirectory(outputFolder, outputZip);
-    fs.rmdirSync(outputFolder, { recursive: true, force: true });
 } catch (exception) {
     core.setFailed(exception.message);
 }
@@ -88,6 +87,12 @@ function compressDirectory(origin, destination) {
     let archive = archiver("zip");
 
     console.log(`Starting to compress files... (${destination})`);
+    archive.on('finish', function() {
+        console.log(`Final zip file has been exported as ${destination}`);
+        console.log("Action complete. Cleaning up...");
+
+        fs.rmdirSync(origin, { recursive: true, force: true });
+    });
     archive.pipe(output);
     fs.readdirSync(origin).forEach(node => {
         let subNode = `${origin}/${node}`.replace("./", "");
@@ -99,8 +104,7 @@ function compressDirectory(origin, destination) {
             archive.file(subNode, { name: subNode });
         } 
     });
-    archive.finalize();
-    console.log(`Final zip file has been exported as ${destination}`);
+    archive.finalize();    
 }
 
 function getName(node) {
