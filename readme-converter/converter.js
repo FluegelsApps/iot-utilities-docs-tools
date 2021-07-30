@@ -6,6 +6,8 @@ const archiver = require("archiver");
 
 const FRONTMATTER_TAG = "---";
 const FILEEXTENSION_MARKDOWN = ".md";
+const JDC_TOC_STARTTAG = "<details open markdown=\"block\">";
+const JDC_TOC_ENDTAG = "</details>";
 
 let destination_directory = core.getInput("destination-directory");
 let root_directory = core.getInput("root-directory");
@@ -31,6 +33,7 @@ try {
 function copyFolderRecursive(origin, destination, level) {
     //Copy the origin directory recursively to the destination directory
     console.log(`Copying directory ${origin} to ${destination}`);
+
     fs.readdirSync(origin).forEach(node => {
         let newOrigin = `${origin}/${node}`;
         let newDestination = `${destination}/${node}`;
@@ -39,6 +42,11 @@ function copyFolderRecursive(origin, destination, level) {
             //Copy the subdirectory recursively
             fs.mkdirSync(newDestination);
             copyFolderRecursive(newOrigin, newDestination, level + 1);
+
+            if(fs.readdirSync(newDestination).length == 0) {
+                console.log(`Folder ${newDestination} has been removed because it was empty.`);
+                fs.rmdirSync(newDestination, { recursive: true, force: true });
+            }
         } else if(isMarkdown(node)) {
             if(isIndexFile(node) && level > 1) {
                 //Rename the index file
@@ -58,6 +66,7 @@ function copyFolderRecursive(origin, destination, level) {
 }
 
 function adjustMarkdown(markdown) {
+    //Remove the YAML front matter
     if(markdown.startsWith(FRONTMATTER_TAG)) {
         //Estimate the start and end line of the front matter
         let endIndex = 1;
@@ -74,6 +83,31 @@ function adjustMarkdown(markdown) {
         //Remove the front matter from the document
         let tempContent = "";
         for(let i = endIndex + 2; i < splitContent.length; i++) tempContent = `${tempContent}${splitContent[i]}${os.EOL}`;
+        markdown = tempContent;
+    }
+
+    //Remove the just-the-docs table of contents
+    if(markdown.includes(JDC_TOC_STARTTAG) && markdown.includes(JDC_TOC_ENDTAG)) {
+        let splitContent = markdown.split(os.EOL);
+
+        //Estimate the start and end line of the front matter
+        let startIndex = -1;
+        let endIndex = -1;
+
+        for(let i = 0; i < splitContent.length; i++) {
+            if(splitContent[i] == JDC_TOC_STARTTAG) {
+                startIndex = i;
+            } else if(splitContent[i] == JDC_TOC_ENDTAG) {
+                endIndex = i;
+                break;
+            }
+        }
+
+        //Remove the generated table of contents from the document
+        let tempContent = "";
+        for(let i = 0; i < splitContent.length; i++) {
+            if(i < startIndex || i > endIndex) tempContent = `${tempContent}${splitContent[i]}${os.EOL}`;
+        }
         markdown = tempContent;
     }
 
